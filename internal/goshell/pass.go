@@ -20,6 +20,10 @@ type GpgPassInfo struct {
 	FilePath string `json:"file_path,omitempty"`
 }
 
+func EncryptWithKey (targetFile, key string) (string, error){
+	return "nil", nil
+}
+
 func EncryptFile(file, password string) (string, error) {
 	cmdArgs := []string{"gpg", "--pinentry-mode=loopback", "--passphrase", password, "-c", file}
 	out, err := callCmd(cmdArgs)
@@ -40,8 +44,18 @@ func EncryptFile(file, password string) (string, error) {
 	return out, err
 }
 
-func OpenPass(storePath, file string) GpgPassInfo {
-	return CallGpg(storePath, file, "")
+func DecryptFile(filePath string) string {
+	d := decrypt(filePath, "")
+	return d
+}
+
+func OpenPass(storePath, filepath string) GpgPassInfo {
+	d := decrypt(filepath, "")
+	return GpgPassInfo{
+		Password: strings.TrimRight(d, "\n"),
+		PassName: getPassName(storePath, filepath),
+		FilePath: filepath,
+	}
 }
 
 func CallPass(args []string) string {
@@ -68,7 +82,7 @@ func promptPass() string {
 	return string(bs)
 }
 
-func CallGpg(basedir, file, pass string) GpgPassInfo {
+func decrypt(file, pass string) string {
 	cmdArgs := []string{"gpg2", "-d", "--quiet", "--yes",
 		"--compress-algo=none", "--pinentry-mode=loopback",
 		"--passphrase", pass, file}
@@ -78,17 +92,13 @@ func CallGpg(basedir, file, pass string) GpgPassInfo {
 		if pass == "" {
 			fmt.Println("Passphrase: ")
 			pp := promptPass()
-			return CallGpg(basedir, file, pp)
+			return decrypt(file, pp)
 		}
 
 		log.Fatal("Cannot open pass file. ", file)
 	}
 
-	return GpgPassInfo{
-		Password: out,
-		FilePath: file,
-		PassName: getPassName(basedir, file),
-	}
+	return out
 }
 
 func GetPassKeys(storePath string) []string {

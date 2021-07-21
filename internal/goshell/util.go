@@ -25,3 +25,7 @@ func CheckFileExists(path string) bool{
 	return !stat.IsDir()
 
 }
+func GetPublicKey (storePath string) string{
+	return ""
+
+}
