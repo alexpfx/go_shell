@@ -25,11 +25,11 @@ func EncryptFile(file, password string) (string, error) {
 	out, err := callCmd(cmdArgs)
 	if err != nil {
 		if password == "" {
-			fmt.Println("Output file password: ")
+			fmt.Println("Password: ")
 			pp := promptPass()
 			fmt.Println("Confirm: ")
 			rp := promptPass()
-			if (pp != rp){
+			if pp != rp {
 				log.Fatal("Typed passwords doesn't match")
 			}
 
@@ -73,15 +73,15 @@ func CallGpg(basedir, file, pass string) GpgPassInfo {
 		"--compress-algo=none", "--pinentry-mode=loopback",
 		"--passphrase", pass, file}
 	out, err := callCmd(cmdArgs)
-	fmt.Println(pass)
+
 	if err != nil {
 		if pass == "" {
-			fmt.Println("Input files password: ")
+			fmt.Println("Passphrase: ")
 			pp := promptPass()
 			return CallGpg(basedir, file, pp)
 		}
-		
-		log.Fatal("Não foi possível logar no arquivo de origem.")				
+
+		log.Fatal("Cannot open pass file. ", file)
 	}
 
 	return GpgPassInfo{

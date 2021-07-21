@@ -7,12 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
 	"github.com/alexpfx/go_shell/internal/goshell"
 	"github.com/urfave/cli/v2"
 )
 
-const defaultBackupFile = ".passbackup"
+const defaultBackupFile = "bkp"
 
 func main() {
 	homeDir, _ := os.UserHomeDir()
@@ -59,13 +58,17 @@ func main() {
 							if goshell.CheckFileExists(target){
 								log.Fatal("File exists: ", target)
 							}
+
 							ioutil.WriteFile(target, goshell.ToJsonStr(allPassInfos), 0644)
 							_, err := goshell.EncryptFile(target, "")
 							if err != nil {								
 								log.Fatal(err)
 							}
+							err = os.Remove(target)
+							if err != nil{
+								log.Fatal(err)
+							}
 														
-
 							return nil
 						},
 					},
