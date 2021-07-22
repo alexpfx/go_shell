@@ -1,15 +1,14 @@
 package goshell
 
 import (
-	"fmt"
+	"encoding/json"
 	"io/fs"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"golang.org/x/term"
 )
 
 const pass = "pass"
@@ -20,28 +19,14 @@ type GpgPassInfo struct {
 	FilePath string `json:"file_path,omitempty"`
 }
 
-func EncryptWithKey (targetFile, key string) (string, error){
+func EncryptWithKey(targetFile, key string) (string, error) {
 	return "nil", nil
 }
 
-func EncryptFile(file, password string) (string, error) {
+func encryptFile(file, password string) error {
 	cmdArgs := []string{"gpg", "--pinentry-mode=loopback", "--passphrase", password, "-c", file}
-	out, err := callCmd(cmdArgs)
-	if err != nil {
-		if password == "" {
-			fmt.Println("Password: ")
-			pp := promptPass()
-			fmt.Println("Confirm: ")
-			rp := promptPass()
-			if pp != rp {
-				log.Fatal("Typed passwords doesn't match")
-			}
-
-			return EncryptFile(file, pp)
-		}
-		return out, err
-	}
-	return out, err
+	_, err := callCmd(cmdArgs)
+	return err
 }
 
 func DecryptFile(filePath string) string {
@@ -49,13 +34,8 @@ func DecryptFile(filePath string) string {
 	return d
 }
 
-func OpenPass(storePath, filepath string) GpgPassInfo {
-	d := decrypt(filepath, "")
-	return GpgPassInfo{
-		Password: strings.TrimRight(d, "\n"),
-		PassName: getPassName(storePath, filepath),
-		FilePath: filepath,
-	}
+func AllPassInfos() {
+
 }
 
 func CallPass(args []string) string {
@@ -74,42 +54,66 @@ func callCmd(cmdArgs []string) (string, error) {
 	return string(out), err
 }
 
-func promptPass() string {
-	bs, err := term.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(bs)
-}
-
 func decrypt(file, pass string) string {
 	cmdArgs := []string{"gpg2", "-d", "--quiet", "--yes",
 		"--compress-algo=none", "--pinentry-mode=loopback",
 		"--passphrase", pass, file}
 	out, err := callCmd(cmdArgs)
-
 	if err != nil {
-		if pass == "" {
-			fmt.Println("Passphrase: ")
-			pp := promptPass()
-			return decrypt(file, pp)
-		}
-
-		log.Fatal("Cannot open pass file. ", file)
+		log.Fatalf("Cannot decrypt: %s", file)
 	}
 
 	return out
 }
 
-func GetPassKeys(storePath string) []string {
-	return GetGpgFilePaths(storePath)
+func getPassKeys(storePath string) []string {
+	return getGpgFiles(storePath)
 }
 
 func getPassName(baseDir, fullPath string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(fullPath, baseDir+string(os.PathSeparator)), filepath.Ext(fullPath))
 }
 
-func GetGpgFilePaths(baseDir string) []string {
+func Backup(target, passwordStore string) {
+	if CheckFileExists(target) {
+		if target != passwordStore {
+			log.Fatal("File exists: ", target)
+		}
+	}
+	pass := promptPass("Passphrase: ")
+	allPassInfos := make([]GpgPassInfo, 0)
+	paths := getGpgFiles(passwordStore)
+	for _, path := range paths {
+		dec := decrypt(path, pass)
+
+		allPassInfos = append(allPassInfos, GpgPassInfo{
+			Password: strings.TrimRight(dec, "\n"),
+			PassName: getPassName(passwordStore, path),
+			FilePath: path,
+		})
+	}
+	createBackupFile(allPassInfos, target, pass)
+}
+
+func createBackupFile(passiInfos []GpgPassInfo, target, pass string) {
+	defer os.Remove(target)
+
+	bs, err := json.MarshalIndent(passiInfos, "", "   ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = ioutil.WriteFile(target, bs, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = encryptFile(target, pass)
+	if err != nil {
+		log.Fatal("Cannot encrypt file: ", target)
+	}
+
+}
+
+func getGpgFiles(baseDir string) []string {
 	files := make([]string, 0)
 
 	err := filepath.WalkDir(baseDir, func(path string, d fs.DirEntry, err error) error {

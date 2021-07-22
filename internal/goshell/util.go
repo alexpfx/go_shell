@@ -2,21 +2,24 @@ package goshell
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
+
+	"golang.org/x/term"
 )
 
-func ToJsonStr(obj interface{}) []byte{
+func ToJsonStr(obj interface{}) []byte {
 	bs, err := json.MarshalIndent(obj, "", "    ")
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 	return bs
 }
 
-func CheckFileExists(path string) bool{
+func CheckFileExists(path string) bool {
 	stat, err := os.Stat(path)
-	if err != nil{
+	if err != nil {
 		if os.IsNotExist(err) {
 			return false
 		}
@@ -25,7 +28,15 @@ func CheckFileExists(path string) bool{
 	return !stat.IsDir()
 
 }
-func GetPublicKey (storePath string) string{
+func promptPass(prompt string) string {
+	fmt.Println(prompt)
+	bs, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(bs)
+}
+func GetPublicKey(storePath string) string {
 	return ""
 
 }

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -28,17 +26,17 @@ func main() {
 					{
 						Name: "restore",
 						Action: func(c *cli.Context) error {
-							target := c.String("backup_file")
-							dFile := goshell.DecryptFile(target + ".gpg")
-							if (debugMode){
-								fmt.Println(dFile)
-							}
+							/*
+								target := c.String("backup-file")
+								dFile := goshell.DecryptFile(target + ".gpg")
+							*/
 
 							return nil
 						},
+
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:    "backup_file",
+								Name:    "backup-file",
 								Aliases: []string{"t"},
 								Value:   defaultBackupFile,
 							},
@@ -49,9 +47,9 @@ func main() {
 								Value:   defaultPasswordStore,
 							},
 							&cli.StringFlag{
-								Name: "public-key",
+								Name:    "public-key",
 								Aliases: []string{"k"},
-								Value: "",
+								Value:   "",
 							},
 						},
 					},
@@ -65,43 +63,15 @@ func main() {
 								Value:   defaultPasswordStore,
 							},
 							&cli.StringFlag{
-								Name:    "backup_file",
+								Name:    "backup-file",
 								Aliases: []string{"t"},
 								Value:   defaultBackupFile,
 							},
 						},
 						Action: func(c *cli.Context) error {
-
 							passwordStore := c.String("password-store")
-							target := c.String("backup_file")
-
-							list := goshell.GetGpgFilePaths(passwordStore)
-
-							allPassInfos := make([]goshell.GpgPassInfo, 0)
-
-							for _, pn := range list {
-								password := goshell.OpenPass(passwordStore, pn)
-								allPassInfos = append(allPassInfos, password)
-							}
-
-							if goshell.CheckFileExists(target) {
-								if target != defaultPasswordStore {
-									log.Fatal("File exists: ", target)
-								}
-							}
-
-							ioutil.WriteFile(target, goshell.ToJsonStr(allPassInfos), 0644)
-							_, err := goshell.EncryptFile(target, "")
-							if err != nil {
-								log.Fatal(err)
-							}
-							if !debugMode {
-								err = os.Remove(target)
-							}
-							if err != nil {
-								log.Fatal(err)
-							}
-
+							target := c.String("backup-file")
+							goshell.Backup(target, passwordStore)
 							return nil
 						},
 					},
