@@ -17,7 +17,7 @@ func ToJsonStr(obj interface{}) []byte {
 	return bs
 }
 
-func CheckFileExists(path string) bool {
+func checkFileExists(path string) bool {
 	stat, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -28,6 +28,7 @@ func CheckFileExists(path string) bool {
 	return !stat.IsDir()
 
 }
+
 func promptPass(prompt string) string {
 	fmt.Println(prompt)
 	bs, err := term.ReadPassword(int(os.Stdin.Fd()))
@@ -36,6 +37,7 @@ func promptPass(prompt string) string {
 	}
 	return string(bs)
 }
+
 func GetPublicKey(storePath string) string {
 	return ""
 

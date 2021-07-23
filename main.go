@@ -25,20 +25,11 @@ func main() {
 				Subcommands: []*cli.Command{
 					{
 						Name: "restore",
-						Action: func(c *cli.Context) error {
-							/*
-								target := c.String("backup-file")
-								dFile := goshell.DecryptFile(target + ".gpg")
-							*/
-
-							return nil
-						},
-
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:    "backup-file",
 								Aliases: []string{"t"},
-								Value:   defaultBackupFile,
+								Value:   defaultBackupFile + ".gpg",
 							},
 							&cli.StringFlag{
 								Name:    "password-store",
@@ -51,6 +42,12 @@ func main() {
 								Aliases: []string{"k"},
 								Value:   "",
 							},
+						},
+						Action: func(c *cli.Context) error {
+							target := c.String("backup-file")
+							goshell.Restore(target)
+
+							return nil
 						},
 					},
 					{
