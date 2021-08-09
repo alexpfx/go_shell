@@ -9,9 +9,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const defaultBackupFile = "password-store.plain"
+const defaultBackupFile = "pass-backup"
 
 func main() {
+	log.SetFlags(log.Llongfile)
+
 	homeDir, _ := os.UserHomeDir()
 	var defaultPasswordStore = filepath.Join(homeDir, ".password-store/")
 	var debugMode bool
@@ -24,12 +26,28 @@ func main() {
 				Usage: "comandos relativos ao comando pass",
 				Subcommands: []*cli.Command{
 					{
+						Name: "list",
+						Action: func(c *cli.Context) error {
+							goshell.List()
+							return nil
+						},
+					},
+					{
 						Name: "restore",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:    "backup-file",
 								Aliases: []string{"t"},
 								Value:   defaultBackupFile + ".gpg",
+							},
+							&cli.BoolFlag{
+								Name:    "update",
+								Aliases: []string{"U"},
+								Value:   false,
+							},
+							&cli.StringFlag{
+								Name:  "prefix",
+								Value: "restored/",
 							},
 							&cli.StringFlag{
 								Name:    "password-store",
@@ -45,7 +63,12 @@ func main() {
 						},
 						Action: func(c *cli.Context) error {
 							target := c.String("backup-file")
-							goshell.Restore(target)
+							passwordStore := c.String("password-store")
+							prefix := c.String("prefix")
+							forceUpdate := c.Bool("update")
+
+							restore := goshell.NewRestore(prefix, passwordStore, target, forceUpdate)
+							restore.Do()
 
 							return nil
 						},
@@ -68,7 +91,16 @@ func main() {
 						Action: func(c *cli.Context) error {
 							passwordStore := c.String("password-store")
 							target := c.String("backup-file")
-							goshell.Backup(target, passwordStore)
+
+							if debugMode {
+								log.SetFlags(log.Llongfile)
+								//log.SetFlags(0)
+								//log.SetOutput(io.Discard)
+							}
+
+							backup := goshell.NewBackup(passwordStore, target)
+							backup.Do()
+
 							return nil
 						},
 					},
